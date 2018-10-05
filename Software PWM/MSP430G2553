@@ -1,0 +1,95 @@
+#include <msp430.h> 
+
+
+/**
+ * The main.c file for the Software PWM on the MSP430G2553 board
+ * Nolan Foy
+ * Created on 10/3/18
+ * Last updated on 10/5/18
+ */
+
+int pwm = 500; //Sets and defines the pwm value
+int state = 0; //Sets the beginning state for the debounce timer
+int main(void)
+{
+	WDTCTL = WDTPW | WDTHOLD;	// stop watchdog timer
+
+
+    //Button Configurations
+	
+	P1DIR &= ~BIT3; // Sets P1.3 (Button) as an input
+	P1REN |= BIT3;  //P1.3 is now resistor enabled
+	P1OUT |= BIT3; //Initializes P1.3 to be a pull up resistors
+	P1IE |= BIT3; //Enables the interrupt on P1.3
+	P1IFG &= ~BIT3; //Clears the interrupt flag
+	P1IES |= BIT3; //enables "high to low" behavior on the interrupt when the button is pressed
+
+	//Outputs
+    P1DIR |= BIT6; //Sets P1.6 as an output pin (LED)
+	P1OUT &= ~BIT6; // Sets the LED to be off to start
+
+	//Code for Pulse Width Modulation (PWM) Timer
+
+	TA0CCR0 = 1000; //Sets the Capture Control Register frequency
+	TA0CTL = TASSEL_2 + MC_1 + TACLR; //Sub-main Clock (SMCLK) is set to up mode, clears the timer to zero, and enables the timer a interrupt
+
+	//Code for Debounce Timer
+	TA1CCTL0 = CCIE;                    // Enables the CCR1 interrupt
+	TA1CCR0 = 50000;                    //Sets the timer to overflow every 10ms (strictly the debounce timer)
+
+
+	__bis_SR_register(GIE); // Enters low power mode and enables the general interrupts
+
+	for(;;)//infinite for loop
+	{
+	    if(TA0R <= pwm) P1OUT ^= BIT6; // pwm/1000 * 100% will equal the duty cycle; will XOR output if TA0R is less than/equal to pwm
+        else if (TA0R > pwm) P1OUT &= ~BIT6; //turns the LED off if TA0R is greater than the pwm
+	}
+}
+
+    #pragma vector=PORT1_VECTOR  //Interrupt 1 where the LED is toggled and timer A starts
+    __interrupt void PORT_1(void) //enables the interrupt
+    {
+        switch(state) //Switch state is made for the different LED cases
+        {
+        case 0: // The scenario where the LED goes from off to on
+            TA1CTL = TASSEL_2 + MC_1 + TACLR;       // Activates the timer (UP mode, goes into case 0 in the timer ISR)
+            P1IFG &= ~BIT3;                         // Clears the interrupt flag on P1.3
+            P1IE &= ~BIT3;                          // Disables the interrupts for P1.3
+            break;
+        case 1: //The scenario where the LED goes from on to off
+            TA1CTL = TASSEL_2 + MC_1 + TACLR;       //Activates the timer (UP mode, goes into case 1 in the timer ISR)
+            P1IFG &= ~BIT3;                         //Clears the interrupt flag on P1.3
+            P1IE &= ~BIT3;                          //Disables the interrupts for P1.3
+            break;
+        }
+}
+    #pragma vector=TIMER1_A0_VECTOR //Interrupt 2 where the LED is toggled and timer A starts
+    __interrupt void Timer_A0 (void) //enables the interrupt
+   {
+        switch(state) //Switch state is made for different LED cases
+        {
+        case 0://When the LED is on and stays on
+            if(pwm < 1000) pwm += 100;
+            else pwm = 0;              //Blinks the LED
+            P1IE |= BIT3;              //Re-enables the interrupts that were previously disabled
+            P1IES &= ~BIT3;            //Toggles the interrupt edge and enables Low to High behavior when the button is released
+            TA1CTL &= ~TASSEL_2;        //Stops the timer
+            TA1CTL |= TACLR;            //Clears the timer
+            state = 1;                  //Continues to the next state in port 1 ISR when the button is pressed
+            break;
+        case 1://When the LED is going off and stays off
+            P1IE |= BIT3;               //Enables the interrupt on P1.3
+            P1IFG &= ~BIT3;             //Clears the interrupt flag on P1.3
+            P1IES |= BIT3;              //Toggles the interrupt edge and enables high to low behavior
+            TA1CTL &= ~TASSEL_2;        //Stops the timer
+            TA1CTL |= TACLR;            //Clears the timer
+            state = 0;                  //Goes back to case  0 of port 1 ISR when the button is pressed
+            break;
+        }
+
+
+}
+
+
+
