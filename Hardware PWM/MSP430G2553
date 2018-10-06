@@ -1,0 +1,61 @@
+#include <msp430.h> 
+/** 
+*The main.c file for the Hardware PWM on the MSP430G2553 Board
+*Nolan Foy
+*Created on 10/3/18
+*Last updated on 10/5/18
+*/
+
+
+int pwm = 500;
+
+int main(void)
+{
+    WDTCTL = WDTPW + WDTHOLD;   // stop watchdog timer
+
+//led setup:
+    P1DIR |= BIT6;            // P1.6 as output
+    P1SEL |= BIT6;                  // P1.6 option select
+//debounce timer setup:
+    TA1CCTL0 = CCIE;                    // CCR1 interrupt enabled
+    TA1CCR0 = 10000;                    //overflow every 10ms for the debounce timer
+//pwm timer setup
+    TA0CCTL1 = OUTMOD_7;                // CCR1 reset/set
+    TA0CCR0 = 1000-1;                   //overflow every 1ms for pulse width modulation
+    TA0CCR1 = 500;                      //PWM starts at 50%
+    TA0CTL = TASSEL_2 | MC_1;           //SMCLK,  set to up mode
+//button setup:
+    P1DIR &= ~BIT3;                 //sets P1.3 as an input
+    P1REN |= BIT3;                  //P1.3 is resitor enabled
+    P1OUT |= BIT3;                  //Sets P1.3 as a pull up resistor
+    P1IE |= BIT3;                   //Interrupt enabled on P1.3
+    P1IFG &= ~BIT3;                 //Clears the interrupt flag on P1.3
+
+    __bis_SR_register(LPM0_bits + GIE);       // Enters low power mode with general interrupts enabled
+
+    return 0;
+}
+
+#pragma vector=PORT1_VECTOR //Button interrupt
+__interrupt void PORT_1(void)
+{
+
+    TA1CTL = TASSEL_2 + MC_1;                  // Activates the  timer, counts up
+
+    P1IFG &= ~BIT3;     //Interrupt flag cleared on P1.3
+    P1IES &= ~BIT3;      //Toggles the interrupt edge
+}
+
+#pragma vector=TIMER1_A0_VECTOR
+__interrupt void Timer1_A0 (void)
+{
+    if(pwm < 1000) pwm += 100;
+    else pwm = 0;
+    P1IE |= BIT3;           //Enables the interrupt
+    TA0CCR1 = pwm;    //PWM starts at 50% and increases by PWM (100), then resets to zero
+    TA1CTL = 0x00;          //stops the timer
+}
+
+
+
+
