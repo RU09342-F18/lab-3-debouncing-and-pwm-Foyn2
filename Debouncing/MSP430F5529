@@ -1,40 +1,41 @@
 #include <msp430.h> 
 /**
- * main.c
+ * The main.c file for Debouncing on the MSP430F5529 board
+ * Nolan Foy
+ * Created on 10/3/18
+ * Last updated on 10/6/18
  */
 int main(void)
 {
     WDTCTL = WDTPW | WDTHOLD;   // Stop watchdog timer
 
-    P4DIR |= BIT7; // sets P4.7 to an output
-    P1REN |= BIT1; // sets P1.1 to be a pull-up resistor
-    P1OUT |= BIT1; // initializes states of pins
-    P1IE |= BIT1;  // enables interrupt on the button
-    P1IES |= 0; // enables "high to low" behavior on interrupt (selects the edge)
+    P4DIR |= BIT7; //Sets P4.7 to be an output pin
+    P1REN |= BIT1; //Sets P1.1 to be resistor enabled (pull up)
+    P1OUT |= BIT1; //Initializes the value (0 or 1) of P1.1 (pull up resistor)
+    P1IE |= BIT1;  //Enables the button interrupt on P1.1
+    P1IES |= 0; //Enables "high to low" behavior on the interrupt when the button is pressed
 
-    TA0CCTL0 = 0x0010; // CCR0 interrupt enabled
-    TA0CCR0 =  60000; // sets frequency
-    TA0CTL = TASSEL_2 + MC_0;   // Timer_A Control
+    TA0CCTL0 = 0x0010; //Enables the CCR0 interrupt for Timer A
+    TA0CCR0 =  60000; //Sets the Capture Control Register frequency
+    TA0CTL = TASSEL_2 + MC_0; // Sets the frequency of the clock/timer to be stopped
 
-    __enable_interrupt(); //enables interrupts
+    __enable_interrupt(); //Enables the interrupts
 
-    __bis_SR_register(LPM0 + GIE);  // Low Power Mode w/ general interrupts enabled
+    __bis_SR_register(LPM0 + GIE);  //This is to enable Low-Power Mode and the General Interrupts
 }
 
-// Routine 1: toggles the LED on release of the button and starts timer to act as delay
-    #pragma vector=PORT1_VECTOR
-    __interrupt void Interrupt_1(void)
+    #pragma vector=PORT1_VECTOR //Interrupt 1 where the LED is toggled and the timer starts to act as a delay
+    __interrupt void Interrupt_1(void) //Enables the interrupt
     {
-        P4OUT ^= BIT7;  // toggles LED
-        P1IE &= ~BIT1;  // enables interrupt (button)
-        TA0CTL = TASSEL_2 + MC_1;   // Timer_A Control register that sets SMCLK high frequency, Up
-    }
+        P4OUT ^= BIT7;  //Toggles the LED via Exclusive OR
+        P1IE &= ~BIT1;  //Enables the interrupt on the button (P1.1)
+        TA0CTL = TASSEL_2 + MC_1; //Sets the timer to count up to the CCR0 value (UP Mode)
 
-//Routine 2: stops Timer A0 and resets the interrupt
-    #pragma vector = TIMER0_A0_VECTOR
+
+    #pragma vector = TIMER0_A0_VECTOR //2nd routine where the timer is stopped and the interrupt is reset
     __interrupt void Interrupt_2(void)
     {
-        TA0CTL = MC_0; // toggles state
-        P1IE |= BIT1;   // enables interrupt (button)
-        P1IFG &= ~BIT1; // clears interrupt
+        TA0CTL = MC_0; //Stops the timer
+        P1IE |= BIT1;   //Enables the interrrupt on P1.1 (button)
+        P1IFG &= ~BIT1; //Clears the interrupt flag
     }
