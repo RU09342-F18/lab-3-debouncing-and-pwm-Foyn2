@@ -11,26 +11,26 @@ int main(void)
 {
 	WDTCTL = WDTPW | WDTHOLD;	// stop watchdog timer
 
-	    P1DIR |= BIT0; // sets P1.0 to be an output pin
-	    P1REN |= BIT3; // sets P1.3 to be resistor enabled (pull up)
-	    P1OUT |= BIT3; // initializes the value (0 or 1) of P1.3 (pull up resistor)
-	    P1IE |= BIT3;  // enables the button interrupt on P1.3
-	    P1IES |= 0x0000; // enables "high to low" behavior on the interrupt when the button is pressed
+	    P1DIR |= BIT0; //Sets P1.0 to be an output pin
+	    P1REN |= BIT3; //Sets P1.3 to be resistor enabled (pull up)
+	    P1OUT |= BIT3; //Initializes the value (0 or 1) of P1.3 (pull up resistor)
+	    P1IE |= BIT3;  //Enables the button interrupt on P1.3
+	    P1IES |= 0x0000; //Enables "high to low" behavior on the interrupt when the button is pressed
 
-	    TACCTL0 = 0x0010; // Enables the CCR0 interrupt for Timer A
-	    TACCR0 =  60000; // sets the Capture control register frequency
-	    TA0CTL = TASSEL_2 + MC_0; //Sets the frequency of the clock/timer stopped
+	    TACCTL0 = 0x0010; //Enables the CCR0 interrupt for Timer A
+	    TACCR0 =  60000; //Sets the Capture control register frequency
+	    TA0CTL = TASSEL_2 + MC_0; //Sets the frequency of the clock/timer to be stopped
 
 	    __enable_interrupt(); //enables the interrupts
 
 	    __bis_SR_register(LPM0 + GIE); //This is to enable Low-Power Mode and the General Interrupts
 	}
 
-	    #pragma vector=PORT1_VECTOR // Interrupt 1 where the LED is toggled and timer A starts
+	    #pragma vector=PORT1_VECTOR //Interrupt 1 where the LED is toggled and timer A starts
 	    __interrupt void Interrupt_1(void) //Enables the interrupt
 	    {
-	        P1OUT ^= BIT0;  // toggles the LED via Exclusive OR (not on and off due to interrupt)
-	        P1IE &= ~BIT3;  // enables interrupt (button)
+	        P1OUT ^= BIT0;  //Toggles the LED via Exclusive OR (not on and off due to interrupt)
+	        P1IE &= ~BIT3;  //Enables interrupt (button)
 	        TA0CTL = TASSEL_2 + MC_1; //Sets the timer to count up to the CCR0 value (UP Mode)
 	    }
 
@@ -38,7 +38,7 @@ int main(void)
 	    #pragma vector = TIMER0_A0_VECTOR // timer0 A0 interrupt service routine
 	    __interrupt void Interrupt_2(void)
 	    {
-	        TA0CTL = MC_0; // Stops the timer
-	        P1IE |= BIT3;   // enables the interrupt on P1.3 (button)
-	        P1IFG &= ~BIT3; // clears the interrupt flag
+	        TA0CTL = MC_0; //Stops the timer
+	        P1IE |= BIT3;   //Enables the interrupt on P1.3 (button)
+	        P1IFG &= ~BIT3; //Clears the interrupt flag
 	    }
