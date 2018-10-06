@@ -1,5 +1,12 @@
 #include <msp430.h> 
 
+/** 
+*The main.c file for the Hardware PWM on the MSP430FR2311 Board
+*Nolan Foy
+*Created on 10/3/18
+*Last updated on 10/6/18
+*/
+
 int pwm = 500; //Defines the PWM variable used in the interrupt code
 
 int main(void)
