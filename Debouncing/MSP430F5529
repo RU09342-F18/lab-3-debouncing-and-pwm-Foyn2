@@ -17,7 +17,7 @@ int main(void)
 
     TA0CCTL0 = 0x0010; //Enables the CCR0 interrupt for Timer A
     TA0CCR0 =  60000; //Sets the Capture Control Register frequency
-    TA0CTL = TASSEL_2 + MC_0; // Sets the frequency of the clock/timer to be stopped
+    TA0CTL = TASSEL_2 + MC_0; //Sets the frequency of the clock/timer to be stopped
 
     __enable_interrupt(); //Enables the interrupts
 
