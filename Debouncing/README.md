@@ -1,18 +1,6 @@
 # Software Debouncing
-In previous labs, we talked about how objects such as switches can cause some nasty effects since they are actually a mechanical system at heart. We talked about the simple hardware method of debouncing, but due to the many different design constraints, you may not be able to add or adjust hardware. Debouncing is also only one of many applications which would require the use of built in Timers to allow for other processes to take place.
+The purpose of the debouncing portion of the lab is to eliminate the occurence that happens when the button is pressed. Normally, when the two contacts of the button contact each other, they will bounce back and forth until the button is pressed again. Thanks to this, it will appear as if pressing the button once does nothing at all, since the microprocessor may have interpreted one button press as several. The debouncing code implemented here prevents that from happening so the microprocessor can react to the buton presses smoothly.
 
-## Task
-You need to utilize the TIMER modules within the MSP430 processors to implement a debounced switch to control the state of an LED. You most likely will want to hook up your buttons on the development boards to an oscilloscope to see how much time it takes for the buttons to settle. The idea here is that your processor should be able to run other code, while relying on timers and interrupts to manage the debouncing in the background. *You should not be using polling techniques for this assignment.*
+In order to prevent the bouncing occurrence from happening, a timer was implemented to delay the time between the button being pressed and the microprocessor realizing that the button was pressed. To do this, a button interrupt is enabled so that the LED will stay at its current state. Once the LED is toggled, the timer interrupt is enabled in UP mode, which means that the timer will count up to the CCR0 value (set at 60000 here) until it is able to receive any more information from the button. Once the CCR0 value is reached by the timer, the 2nd interrupt implemented stops the timer and resets the button interrupt to prepare for the next time that the button is pressed.
 
-## Deliverables
-You will need to have two folders in this repository, one for each of the processors that you used for this part of the lab. Remember to replace this README with your own.
-
-### Hints
-You need to take a look at how the P1IE and P1IES registers work and how to control them within an interrupt routine. Remember that the debouncing is not going to be the main process you are going to run by the end of the lab.
-
-## Extra Work
-### Low Power Modes
-Go into the datasheets or look online for information about the low power modes of your processors and using Energy Trace, see what the lowest power consumption you can achieve while still running your debouncing code. Take a note when your processor is not driving the LED (or unplug the header connecting the LED and check) but running the interrupt routine for your debouncing.
-
-### Double the fun
-Can you expand your code to debounce two switches? Do you have to use two Timer peripherals to do this?
+The G2553 and F5529 boards both had similar implementations, but different pin assignments. When implementing both codes, the pins had to be switched around to match up with the buttons on their respective boards.
