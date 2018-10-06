@@ -14,21 +14,21 @@ int main(void)
     WDTCTL = WDTPW + WDTHOLD;   // stop watchdog timer
 
 //led setup:
-    P1DIR |= BIT6;            // P1.6 as output
-    P1SEL |= BIT6;                  // P1.6 option select
+    P1DIR |= BIT6;            // Sets P1.6 to be an output pin
+    P1SEL |= BIT6;                  // Optional select for P1.6
 //debounce timer setup:
-    TA1CCTL0 = CCIE;                    // CCR1 interrupt enabled
-    TA1CCR0 = 10000;                    //overflow every 10ms for the debounce timer
+    TA1CCTL0 = CCIE;                    // CCR1 interrupt is enabled
+    TA1CCR0 = 10000;                    //Set to overflow every 10ms for the debounce timer
 //pwm timer setup
-    TA0CCTL1 = OUTMOD_7;                // CCR1 reset/set
+    TA0CCTL1 = OUTMOD_7;                //This sets the OUTMOD7 Functionality of reset/set to CCR1
     TA0CCR0 = 1000-1;                   //overflow every 1ms for pulse width modulation
-    TA0CCR1 = 500;                      //PWM starts at 50%
-    TA0CTL = TASSEL_2 | MC_1;           //SMCLK,  set to up mode
+    TA0CCR1 = 500;                      //Sets PWM  to start at 50%
+    TA0CTL = TASSEL_2 | MC_1;           //Sub-main clock (SMCLK),  set to UP mode
 //button setup:
     P1DIR &= ~BIT3;                 //sets P1.3 as an input
     P1REN |= BIT3;                  //P1.3 is resitor enabled
     P1OUT |= BIT3;                  //Sets P1.3 as a pull up resistor
-    P1IE |= BIT3;                   //Interrupt enabled on P1.3
+    P1IE |= BIT3;                   //Enables the interrupt on P1.3
     P1IFG &= ~BIT3;                 //Clears the interrupt flag on P1.3
 
     __bis_SR_register(LPM0_bits + GIE);       // Enters low power mode with general interrupts enabled
@@ -40,20 +40,20 @@ int main(void)
 __interrupt void PORT_1(void)
 {
 
-    TA1CTL = TASSEL_2 + MC_1;                  // Activates the  timer, counts up
+    TA1CTL = TASSEL_2 + MC_1;                  // Activates the  timer, counts up (UP mode)
 
     P1IFG &= ~BIT3;     //Interrupt flag cleared on P1.3
     P1IES &= ~BIT3;      //Toggles the interrupt edge
 }
 
 #pragma vector=TIMER1_A0_VECTOR
-__interrupt void Timer1_A0 (void)
+__interrupt void Timer1_A0 (void) // Interrupt utilized for the PWM duty cycle reaching 100% and then resetting back to 0%
 {
-    if(pwm < 1000) pwm += 100;
-    else pwm = 0;
-    P1IE |= BIT3;           //Enables the interrupt
-    TA0CCR1 = pwm;    //PWM starts at 50% and increases by PWM (100), then resets to zero
-    TA1CTL = 0x00;          //stops the timer
+    if(pwm < 1000) pwm += 100; //If the pwm duty cycle is less than 100%, it will keep incrementing by 10% until 100% is reached
+    else pwm = 0;              //Blinks LED
+    P1IE |= BIT3;              //Enables the interrupt on P1.3
+    TA0CCR1 = pwm;             //The PWM starts at 50% and increases by PWM (100), then resets to zero
+    TA1CTL = 0x00;             //Stops the timer
 }
 
 
