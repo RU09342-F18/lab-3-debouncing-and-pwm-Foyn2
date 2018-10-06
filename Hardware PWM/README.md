@@ -7,5 +7,5 @@ The differences between the G2553 and the FR2311 were the ports and the Timer mo
 ```c
  PM5CTL0 &= ~LOCKLPM5;
  ```
-This line of code disables the GPIO power-on default high-impedance mode in the processor, so that the input/output ports could be readily used.
+This line of code disables the GPIO power-on default high-impedance mode in the processor, which allows free use of the input/output ports.
 
