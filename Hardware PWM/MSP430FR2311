@@ -1,52 +1,56 @@
 #include <msp430.h> 
 
-int pwm = 500;
+int pwm = 500; //Defines the PWM variable used in the interrupt code
 
 int main(void)
 {
     WDTCTL = WDTPW | WDTHOLD;   // stop watchdog timer
 
-    PM5CTL0 &= ~LOCKLPM5;            // Disable the GPIO power-on default high-impedance mode
+    PM5CTL0 &= ~LOCKLPM5;            // Necessary Line of code that Disables the GPIO power-on default high-impedance mode
                                      // to activate previously configured port settings
-//led setup:
-    P2DIR |= BIT0;            // P2.0 as output
-    P2SEL0 |= BIT0;                  // P2.0 option select
-//debounce timer setup:
-    TB0CCTL0 = CCIE;                    // CCR1 interrupt enabled
-    TB0CCR0 = 10000;                    //overflow every 10ms FOR DEBOUNCE
-//pwm timer setup
-    TB1CCTL1 = OUTMOD_7;                // CCR1 reset/set
-    TB1CCR0 = 1000-1;                   //overflow every 1ms FOR PWM PERIOD
-    TB1CCR1 = 500;                      //PWM starts at 50%
-    TB1CTL = TBSSEL__SMCLK + MC__UP + TBCLR + ID_2;           //SMCLK, up mode
-//button setup:
-    P1DIR &= ~BIT1;                 //SET P1.1 AS INPUT
-    P1REN |= BIT1;                  //ENABLED PULL UP OR DOWN FOR P1.1
-    P1OUT |= BIT1;                  //SPECIFIED AS A PULLUP FOR P1.1
-    P1IE |= BIT1;                   //SET P1.1 INTERRUPT ENABLED (S2)
-    P1IFG &= ~BIT1;                 //P1.1 IFG CLEARED
+                                     
+  //Button Configurations
+    P1DIR &= ~BIT1;                 //Sets P1.1 as an input
+    P1REN |= BIT1;                  //P1.1 is now resistor enabled
+    P1OUT |= BIT1;                  //Sets P1.1 as a pull-up resistor
+    P1IE |= BIT1;                   //Enables the interrupt on P1.1
+    P1IFG &= ~BIT1;                 //Clears the interrupt flag on P1.1
 
-    __bis_SR_register(LPM0_bits + GIE);       // Enter LPM0 w/ interrupt
+  //LED Configurations
+    P2DIR |= BIT0;            // Sets P2.0 as an output pin
+    P2SEL0 |= BIT0;           // Optional select for P2.0
+
+  //Code for Debounce Timer
+    TB0CCTL0 = CCIE;                    // Enables the CCR1 interrupt 
+    TB0CCR0 = 10000;                    //overflows every 10ms for the debounce timer
+
+  //Code for PWM
+    TB1CCTL1 = OUTMOD_7;                             //This sets CCR1 to carry out the OUTMOD7 functions (reset/set)
+    TB1CCR0 = 1000-1;                               //Set to overflow every 1ms for the pwm
+    TB1CCR1 = 500;                                  //Sets the PWM to start at 50% duty cycle
+    TB1CTL = TBSSEL__SMCLK + MC__UP + TBCLR + ID_2; //Sub-main clock (SMCLK), UP mode
+
+    __bis_SR_register(LPM0_bits + GIE);       // Enters Low Power mode with General interrupts enabled
 
     return 0;
 }
 
-#pragma vector=PORT1_VECTOR//button interrupt
-__interrupt void PORT_1(void)
+#pragma vector=PORT1_VECTOR //Button interrupt
+__interrupt void PORT_1(void) //Enables the interrupt
 {
 
-    TB0CTL = TBSSEL__SMCLK + MC__UP + TBCLR + ID_2;                  // ACTIVATE TIMER
+    TB0CTL = TBSSEL__SMCLK + MC__UP + TBCLR + ID_2; // Activates the timer (UP mode)
 
-    P1IFG &= ~BIT1;     //P1.1 IFG CLEARED
-    P1IES &= ~BIT1;      //TOGGLE INTERRUPT EDGE
+    P1IFG &= ~BIT1;     //Clears the interrupt flag on P1.1
+    P1IES &= ~BIT1;      //Toggles the interrupt edge on P1.1
 }
 
 #pragma vector=TIMER0_B0_VECTOR
-__interrupt void Timer0_A0 (void)
+__interrupt void Timer0_A0 (void) //Interrupt utilized to set PWM duty cycle back to 0% after it reaches 100%
 {
-    if(pwm < 1000) pwm += 100;
-    else pwm = 0;
-    P1IE |= BIT1;           //ENABLE INTERRUPT
-    TB1CCR1 = pwm;    //PWM starts at 50% and increase by PWM (100) then reset to zero
-    TB0CTL = 0x00;          //STOP TIMER
+    if(pwm < 1000) pwm += 100; //IF the PWM duty cycle is less than 100%, it will keep incrementing by 10% until it reaches 100%
+    else pwm = 0;              //Blinks LED
+    P1IE |= BIT1;              //Enables the interrupt
+    TB1CCR1 = pwm;             //PWM starts at 50% and increases by PWM (100) then resets to zero
+    TB0CTL = 0x00;             //Stops the timer
 }
