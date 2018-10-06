@@ -7,29 +7,32 @@
 */
 
 
-int pwm = 500;
+int pwm = 500; //Sets and defines the PWM value/variable
 
 int main(void)
 {
     WDTCTL = WDTPW + WDTHOLD;   // stop watchdog timer
 
-//led setup:
-    P1DIR |= BIT6;            // Sets P1.6 to be an output pin
-    P1SEL |= BIT6;                  // Optional select for P1.6
-//debounce timer setup:
-    TA1CCTL0 = CCIE;                    // CCR1 interrupt is enabled
-    TA1CCR0 = 10000;                    //Set to overflow every 10ms for the debounce timer
-//pwm timer setup
-    TA0CCTL1 = OUTMOD_7;                //This sets the OUTMOD7 Functionality of reset/set to CCR1
-    TA0CCR0 = 1000-1;                   //overflow every 1ms for pulse width modulation
-    TA0CCR1 = 500;                      //Sets PWM  to start at 50%
-    TA0CTL = TASSEL_2 | MC_1;           //Sub-main clock (SMCLK),  set to UP mode
-//button setup:
+//Button Configurations
     P1DIR &= ~BIT3;                 //sets P1.3 as an input
     P1REN |= BIT3;                  //P1.3 is resitor enabled
     P1OUT |= BIT3;                  //Sets P1.3 as a pull up resistor
     P1IE |= BIT3;                   //Enables the interrupt on P1.3
     P1IFG &= ~BIT3;                 //Clears the interrupt flag on P1.3
+
+//LED Configurations
+    P1DIR |= BIT6;            // Sets P1.6 to be an output pin
+    P1SEL |= BIT6;                  // Optional select for P1.6
+    
+//Code for Debounce timer
+    TA1CCTL0 = CCIE;                    // CCR1 interrupt is enabled
+    TA1CCR0 = 10000;                    //Set to overflow every 10ms for the debounce timer
+    
+//Code for PWM timer
+    TA0CCTL1 = OUTMOD_7;                //This sets the OUTMOD7 Functionality of reset/set to CCR1
+    TA0CCR0 = 1000-1;                   //overflow every 1ms for pulse width modulation
+    TA0CCR1 = 500;                      //Sets PWM  to start at 50%
+    TA0CTL = TASSEL_2 | MC_1;           //Sub-main clock (SMCLK),  set to UP mode
 
     __bis_SR_register(LPM0_bits + GIE);       // Enters low power mode with general interrupts enabled
 
