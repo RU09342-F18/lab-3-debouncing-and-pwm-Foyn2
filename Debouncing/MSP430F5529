@@ -1,0 +1,40 @@
+#include <msp430.h> 
+/**
+ * main.c
+ */
+int main(void)
+{
+    WDTCTL = WDTPW | WDTHOLD;   // Stop watchdog timer
+
+    P4DIR |= BIT7; // sets P4.7 to an output
+    P1REN |= BIT1; // sets P1.1 to be a pull-up resistor
+    P1OUT |= BIT1; // initializes states of pins
+    P1IE |= BIT1;  // enables interrupt on the button
+    P1IES |= 0; // enables "high to low" behavior on interrupt (selects the edge)
+
+    TA0CCTL0 = 0x0010; // CCR0 interrupt enabled
+    TA0CCR0 =  60000; // sets frequency
+    TA0CTL = TASSEL_2 + MC_0;   // Timer_A Control
+
+    __enable_interrupt(); //enables interrupts
+
+    __bis_SR_register(LPM0 + GIE);  // Low Power Mode w/ general interrupts enabled
+}
+
+// Routine 1: toggles the LED on release of the button and starts timer to act as delay
+    #pragma vector=PORT1_VECTOR
+    __interrupt void Interrupt_1(void)
+    {
+        P4OUT ^= BIT7;  // toggles LED
+        P1IE &= ~BIT1;  // enables interrupt (button)
+        TA0CTL = TASSEL_2 + MC_1;   // Timer_A Control register that sets SMCLK high frequency, Up
+    }
+
+//Routine 2: stops Timer A0 and resets the interrupt
+    #pragma vector = TIMER0_A0_VECTOR
+    __interrupt void Interrupt_2(void)
+    {
+        TA0CTL = MC_0; // toggles state
+        P1IE |= BIT1;   // enables interrupt (button)
+        P1IFG &= ~BIT1; // clears interrupt
+    }
